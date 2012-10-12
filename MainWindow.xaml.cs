@@ -23,6 +23,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace NiosParser
 {
@@ -37,6 +39,8 @@ namespace NiosParser
         public String InputPath { get; set; }
         public String OutputPath { get; set; }
         public ObservableCollection<Run> Results { get; set; }
+        public ObservableCollection<String> OutputTypes { get; set; }
+        public int SelectedType { get; set; }
 
         #endregion
 
@@ -44,6 +48,10 @@ namespace NiosParser
 
         public MainWindow()
         {
+            SelectedType = -1;
+            OutputTypes = new ObservableCollection<String>();
+            OutputTypes.Add("List");
+            OutputTypes.Add("Grids");
             InitializeComponent();
             DataContext = this;
             InputPath = string.Empty;
@@ -58,7 +66,7 @@ namespace NiosParser
         private Boolean Validate()
         {
             String outputDirectory = OutputPath.Substring(0, OutputPath.LastIndexOf('\\') == -1 ? 0:OutputPath.LastIndexOf('\\'));
-            return File.Exists(InputPath) && Directory.Exists(outputDirectory);
+            return File.Exists(InputPath) && Directory.Exists(outputDirectory) && SelectedType != -1;
         }
 
         private Boolean Parse()
@@ -138,15 +146,90 @@ namespace NiosParser
         private Boolean SaveToFile()
         {
             StringBuilder builder = new StringBuilder();
+            ObservableCollection<int> periods = new ObservableCollection<int>();
+            ObservableCollection<int> dutyCycles = new ObservableCollection<int>();
 
-            builder.AppendLine("Period(ms),Duty Cycle(%),Latency Resolution(ns),Background Size,Missed(pulses),Max Latency(1024th of a period),Max Latency(us),Task Unit Processed(units),");
-            foreach (Run run in Results)
+
+            if (SelectedType == 0)
             {
-                builder.AppendLine(String.Format("{0},{1},{2},{3},{4},{5},{6},{7}", run.Period, run.DutyCycle, run.LatencyResolution, run.BackgroundBatchSize, run.PulseMissed, run.LatencyByPeriod, run.LatencyByTime, run.TaskUnitsProcessed));
+                builder.AppendLine("Period(ms),Duty Cycle(%),Latency Resolution(ns),Background Size,Missed(pulses),Max Latency(1024th of a period),Max Latency(us),Task Unit Processed(units),");
+                foreach (Run run in Results)
+                {
+                    builder.AppendLine(String.Format("{0},{1},{2},{3},{4},{5},{6},{7}", run.Period, run.DutyCycle, run.LatencyResolution, run.BackgroundBatchSize, run.PulseMissed, run.LatencyByPeriod, run.LatencyByTime, run.TaskUnitsProcessed));
+                }
+            }
+            else
+            {
+                foreach (Run run in Results)
+                {
+                    periods.Add(run.Period);
+                    dutyCycles.Add(run.DutyCycle);
+                }
+                periods = new ObservableCollection<int>(periods.Distinct());
+                dutyCycles = new ObservableCollection<int>(dutyCycles.Distinct());
+                builder.AppendLine("Missed Pulses");
+                builder.Append("Period->,");
+                foreach (int i in periods)
+                {
+                    builder.AppendFormat("{0},", i);
+                }
+                builder.AppendLine("");
+
+                foreach (int i in dutyCycles)
+                {
+                    builder.AppendFormat("{0},", i);
+                    foreach (int j in periods)
+                    {
+                        builder.AppendFormat("{0},", (Results.Single(item => item.Period == j && item.DutyCycle == i)).PulseMissed);
+                    }
+                    builder.AppendLine("");
+                }
+                builder.AppendLine("");
+                builder.AppendLine("");
+
+                builder.AppendLine("Max Latency (ms)");
+                builder.Append("Period->,");
+                foreach (int i in periods)
+                {
+                    builder.AppendFormat("{0},", i);
+                }
+                builder.AppendLine("");
+
+                foreach (int i in dutyCycles)
+                {
+                    builder.AppendFormat("{0},", i);
+                    foreach (int j in periods)
+                    {
+                        builder.AppendFormat("{0},", (Results.Single(item => item.Period == j && item.DutyCycle == i)).LatencyByTime);
+                    }
+                    builder.AppendLine("");
+                }
+                builder.AppendLine("");
+                builder.AppendLine("");
+
+                builder.AppendLine("Task Unit Processed");
+                builder.Append("Period->,");
+                foreach (int i in periods)
+                {
+                    builder.AppendFormat("{0},", i);
+                }
+                builder.AppendLine("");
+
+                foreach (int i in dutyCycles)
+                {
+                    builder.AppendFormat("{0},", i);
+                    foreach (int j in periods)
+                    {
+                        builder.AppendFormat("{0},", (Results.Single(item => item.Period == j && item.DutyCycle == i)).TaskUnitsProcessed);
+                    }
+                    builder.AppendLine("");
+                }
+                builder.AppendLine("");
+                builder.AppendLine("");
+
             }
             System.IO.StreamWriter writer = new System.IO.StreamWriter(OutputPath);
             writer.WriteLine(builder.ToString());
-
             writer.Close();
 
             return true;

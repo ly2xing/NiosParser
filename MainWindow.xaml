@@ -23,6 +23,7 @@
         <Button Name="_bnOutput" Content="..." Width="30" Height="30" Grid.Column="2" Grid.Row="2" Margin="10" VerticalAlignment="Top" Click="_bnIO_Click"/>
         
         <StackPanel Orientation="Horizontal" Grid.Row="3" Grid.ColumnSpan="3" HorizontalAlignment="Right">
+            <ComboBox Name="_cbType" ItemsSource="{Binding OutputTypes}" SelectedIndex="{Binding SelectedType}" Width="100" Margin="10"/>
             <Button Content="Parse" Width="100" Margin="10" Click="Parse_Click"/>
             <Button Content="Close" Width="100" Margin="10" Click="Close_Click"/>
         </StackPanel>
