@@ -145,6 +145,7 @@ namespace NiosParser
 
         private Boolean SaveToFile()
         {
+            Run temp;
             StringBuilder builder = new StringBuilder();
             ObservableCollection<int> periods = new ObservableCollection<int>();
             ObservableCollection<int> dutyCycles = new ObservableCollection<int>();
@@ -180,7 +181,9 @@ namespace NiosParser
                     builder.AppendFormat("{0},", i);
                     foreach (int j in periods)
                     {
-                        builder.AppendFormat("{0},", (Results.Single(item => item.Period == j && item.DutyCycle == i)).PulseMissed);
+                        temp = Results.SingleOrDefault(item => item.Period == j && item.DutyCycle == i);
+                        if (temp != null)
+                            builder.AppendFormat("{0},", temp.PulseMissed);
                     }
                     builder.AppendLine("");
                 }
@@ -200,7 +203,9 @@ namespace NiosParser
                     builder.AppendFormat("{0},", i);
                     foreach (int j in periods)
                     {
-                        builder.AppendFormat("{0},", (Results.Single(item => item.Period == j && item.DutyCycle == i)).LatencyByTime);
+                        temp = Results.SingleOrDefault(item => item.Period == j && item.DutyCycle == i);
+                        if (temp != null)
+                            builder.AppendFormat("{0},", temp.LatencyByTime);
                     }
                     builder.AppendLine("");
                 }
@@ -220,7 +225,9 @@ namespace NiosParser
                     builder.AppendFormat("{0},", i);
                     foreach (int j in periods)
                     {
-                        builder.AppendFormat("{0},", (Results.Single(item => item.Period == j && item.DutyCycle == i)).TaskUnitsProcessed);
+                        temp = Results.SingleOrDefault(item => item.Period == j && item.DutyCycle == i);
+                        if (temp != null)
+                            builder.AppendFormat("{0},", temp.TaskUnitsProcessed);
                     }
                     builder.AppendLine("");
                 }
