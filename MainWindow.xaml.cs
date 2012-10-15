@@ -41,6 +41,7 @@ namespace NiosParser
         public ObservableCollection<Run> Results { get; set; }
         public ObservableCollection<String> OutputTypes { get; set; }
         public int SelectedType { get; set; }
+        public Boolean BackGround { get; set; }
 
         #endregion
 
@@ -149,6 +150,7 @@ namespace NiosParser
             StringBuilder builder = new StringBuilder();
             ObservableCollection<int> periods = new ObservableCollection<int>();
             ObservableCollection<int> dutyCycles = new ObservableCollection<int>();
+            ObservableCollection<int> backgrounds = new ObservableCollection<int>();
 
             try
             {
@@ -167,75 +169,98 @@ namespace NiosParser
                     {
                         periods.Add(run.Period);
                         dutyCycles.Add(run.DutyCycle);
+                        if (BackGround)
+                        {
+                            backgrounds.Add(run.BackgroundBatchSize);
+                        }
                     }
                     periods = new ObservableCollection<int>(periods.Distinct());
                     dutyCycles = new ObservableCollection<int>(dutyCycles.Distinct());
-                    builder.AppendLine("Missed Pulses");
-                    builder.Append("Period->,");
-                    foreach (int i in periods)
+                    if (BackGround)
                     {
-                        builder.AppendFormat("{0},", i);
+                        backgrounds = new ObservableCollection<int>(backgrounds.Distinct());
                     }
-                    builder.AppendLine("");
 
-                    foreach (int i in dutyCycles)
+                    do
                     {
-                        builder.AppendFormat("{0},", i);
-                        foreach (int j in periods)
+                        if (BackGround)
                         {
-                            temp = Results.SingleOrDefault(item => item.Period == j && item.DutyCycle == i);
-                            if (temp != null)
-                                builder.AppendFormat("{0},", temp.PulseMissed);
+                            builder.AppendLine("===========================================================================================================================================================");
+                            builder.AppendFormat("Background size: {0}\n", backgrounds[0]);
+                            builder.AppendLine("===========================================================================================================================================================");
+                        }
+
+                        builder.AppendLine("Missed Pulses");
+                        builder.Append("v Duty Cycle\\Period->,");
+                        foreach (int i in periods)
+                        {
+                            builder.AppendFormat("{0},", i);
                         }
                         builder.AppendLine("");
-                    }
-                    builder.AppendLine("");
-                    builder.AppendLine("");
 
-                    builder.AppendLine("Max Latency (ms)");
-                    builder.Append("Period->,");
-                    foreach (int i in periods)
-                    {
-                        builder.AppendFormat("{0},", i);
-                    }
-                    builder.AppendLine("");
-
-                    foreach (int i in dutyCycles)
-                    {
-                        builder.AppendFormat("{0},", i);
-                        foreach (int j in periods)
+                        foreach (int i in dutyCycles)
                         {
-                            temp = Results.SingleOrDefault(item => item.Period == j && item.DutyCycle == i);
-                            if (temp != null)
-                                builder.AppendFormat("{0},", temp.LatencyByTime);
+                            builder.AppendFormat("{0},", i);
+                            foreach (int j in periods)
+                            {
+                                temp = Results.Where(item => item.BackgroundBatchSize == backgrounds[0]).SingleOrDefault(item => item.Period == j && item.DutyCycle == i);
+                                if (temp != null)
+                                    builder.AppendFormat("{0},", temp.PulseMissed);
+                            }
+                            builder.AppendLine("");
                         }
                         builder.AppendLine("");
-                    }
-                    builder.AppendLine("");
-                    builder.AppendLine("");
+                        builder.AppendLine("");
 
-                    builder.AppendLine("Task Unit Processed");
-                    builder.Append("Period->,");
-                    foreach (int i in periods)
-                    {
-                        builder.AppendFormat("{0},", i);
-                    }
-                    builder.AppendLine("");
-
-                    foreach (int i in dutyCycles)
-                    {
-                        builder.AppendFormat("{0},", i);
-                        foreach (int j in periods)
+                        builder.AppendLine("Max Latency (ms)");
+                        builder.Append("Period->,");
+                        foreach (int i in periods)
                         {
-                            temp = Results.SingleOrDefault(item => item.Period == j && item.DutyCycle == i);
-                            if (temp != null)
-                                builder.AppendFormat("{0},", temp.TaskUnitsProcessed);
+                            builder.AppendFormat("{0},", i);
                         }
                         builder.AppendLine("");
-                    }
-                    builder.AppendLine("");
-                    builder.AppendLine("");
 
+                        foreach (int i in dutyCycles)
+                        {
+                            builder.AppendFormat("{0},", i);
+                            foreach (int j in periods)
+                            {
+                                temp = Results.Where(item => item.BackgroundBatchSize == backgrounds[0]).SingleOrDefault(item => item.Period == j && item.DutyCycle == i);
+                                if (temp != null)
+                                    builder.AppendFormat("{0},", temp.LatencyByTime);
+                            }
+                            builder.AppendLine("");
+                        }
+                        builder.AppendLine("");
+                        builder.AppendLine("");
+
+                        builder.AppendLine("Task Unit Processed");
+                        builder.Append("Period->,");
+                        foreach (int i in periods)
+                        {
+                            builder.AppendFormat("{0},", i);
+                        }
+                        builder.AppendLine("");
+
+                        foreach (int i in dutyCycles)
+                        {
+                            builder.AppendFormat("{0},", i);
+                            foreach (int j in periods)
+                            {
+                                temp = Results.Where(item => item.BackgroundBatchSize == backgrounds[0]).SingleOrDefault(item => item.Period == j && item.DutyCycle == i);
+                                if (temp != null)
+                                    builder.AppendFormat("{0},", temp.TaskUnitsProcessed);
+                            }
+                            builder.AppendLine("");
+                        }
+                        builder.AppendLine("");
+                        builder.AppendLine("");
+
+                        backgrounds.RemoveAt(0);
+
+                        builder.AppendLine("===========================================================================================================================================================");
+
+                    } while (BackGround && backgrounds.Count != 0);
                 }
                 System.IO.StreamWriter writer = new System.IO.StreamWriter(OutputPath);
                 writer.WriteLine(builder.ToString());
@@ -245,7 +270,7 @@ namespace NiosParser
             }
             catch (InvalidOperationException ex)
             {
-                MessageBox.Show(String.Format("Input data is either invalid or duplicated\nParser returned following error: \n{0}", ex), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(String.Format("Input data is either invalid or duplicated\nPlease report the issue at: \n https://github.com/ephemeraleclipse/NiosParser/issues \n\nParser returned following error: \n{0}", ex), "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return false;
             }
         }
